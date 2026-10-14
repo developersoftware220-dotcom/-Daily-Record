@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Daily Record</title>
+<style>
+:root {
+  --r1: #6e0f14;
+  --r2: #b71c1c;
+  --r3: #e53935;
+  --tint: #fdf0f0;
+  --line: #efd3d3;
+  --ink: #2a1717;
+  --mut: #755f61;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  background: #fcf8f8;
+  color: var(--ink);
+  padding-bottom: 75px;
+}
+header {
+  background: linear-gradient(135deg, var(--r1), var(--r2));
+  color: #fff;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; }
+header small { opacity: 0.85; font-size: 0.8rem; }
+main { max-width: 800px; margin: 0 auto; padding: 12px; }
+.page { display: none; }
+.page.active { display: block; }
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(110,15,20,0.05);
+}
+h2 { color: var(--r1); font-size: 1.1rem; margin-top: 0; margin-bottom: 10px; }
+label { font-weight: 600; font-size: 0.85rem; color: var(--r1); display: block; margin-bottom: 4px; }
+input, select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  margin-bottom: 10px;
+  background: #fff;
+}
+input:focus, select:focus { outline: 2px solid var(--r3); border-color: transparent; }
+.grid-container {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+table.excel-grid {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+  background: #fff;
+}
+table.excel-grid th {
+  background: var(--r1);
+  color: #fff;
+  font-size: 0.85rem;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--r2);
+}
+table.excel-grid td {
+  border: 1px solid var(--line);
+  padding: 2px;
+}
+table.excel-grid input {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 8px;
+  font-size: 0.9rem;
+}
+table.excel-grid input:focus { background: var(--tint); }
+td.row-num { text-align: center; background: #f7eded; color: var(--mut); font-weight: 600; font-size: 0.8rem; width: 30px; }
+.btn {
+  background: var(--r2);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:active { opacity: 0.9; }
+.btn.ghost { background: transparent; color: var(--r2); border: 1px solid var(--r2); }
+.btn.danger { background: #d32f2f; }
+.btn.sm { padding: 5px 10px; font-size: 0.8rem; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stat-card {
+  background: var(--tint);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+.stat-card b { display: block; font-size: 1.3rem; color: var(--r2); }
+.stat-card span { font-size: 0.75rem; color: var(--mut); font-weight: 600; }
+
+nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+}
+nav button {
+  background: none;
+  border: none;
+  color: var(--mut);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  flex: 1;
+}
+nav button.active { color: var(--r2); }
+nav svg { width: 22px; height: 22px; fill: currentColor; }
+.bar-bg { background: #eee; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.bar-fill { background: linear-gradient(90deg, var(--r3), var(--r1)); height: 100%; border-radius: 4px; }
+.tag { background: var(--tint); color: var(--r1); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+
+#toast {
+  position: fixed;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #2a1717;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  text-align: center;
+  max-width: 90%;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.error { background: var(--r2); }
+
+#modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(42, 23, 23, 0.5);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#modalBackdrop.show { display: flex; }
+.modal-box {
+  background: #fff;
+  width: 100%;
+  max-width: 380px;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.modal-title { font-weight: 700; font-size: 1.1rem; color: var(--r1); margin-bottom: 8px; }
+.modal-desc { font-size: 0.9rem; color: var(--ink); margin-bottom: 16px; line-height: 1.4; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Daily Record</h1>
+  <small id="hdrDate"></small>
+</header>
+
+<main>
+  <!-- Page 1: Daily Report -->
+  <section id="p-reports" class="page active">
+    <h2>Daily Recitation Report</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <b id="statTotalSheets">0</b>
+        <span>Total Records</span>
+      </div>
+      <div class="stat-card">
+        <b id="statTotalStudents">0</b>
+        <span>Students</span>
+      </div>
+      <div class="stat-card">
+        <b id="statAvgPct">0%</b>
+        <span>Avg Recited</span>
+      </div>
+    </div>
+    <div id="reportsList"></div>
+  </section>
+
+  <!-- Page 2: Add Sheet (Books in Column Header, Details in Rows) -->
+  <section id="p-add" class="page">
+    <h2>Add Daily Sheet</h2>
+    <div class="card">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 140px;">
+          <label>Student Name</label>
+          <input type="text" id="sheetStudent" placeholder="e.g. Ali Ahmed" list="studentNames">
+          <datalist id="studentNames"></datalist>
+        </div>
+        <div style="flex: 1; min-width: 100px;">
+          <label>Class / Grade</label>
+          <input type="text" id="sheetClass" placeholder="e.g. Grade 3">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label style="margin-bottom:8px;">Recitation Records (Date, Book Column, Lesson, % & Remarks)</label>
+      <div class="grid-container">
+        <table class="excel-grid">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Book Name (Column)</th>
+              <th>Lesson / Chapter</th>
+              <th>Recited %</th>
+              <th>Remarks</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="gridBody"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn ghost" onclick="addGridRow()">+ Add Row</button>
+        <button type="button" class="btn" onclick="saveExcelSheet()">Save Record</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Page 3: Setting -->
+  <section id="p-setting" class="page">
+    <h2>Settings & Backup</h2>
+    <div class="card">
+      <label>Data Backup & Restore</label>
+      <p style="font-size:0.85rem; color: var(--mut);">Your data remains saved in browser storage. Export backup regularly.</p>
+      <div class="btn-group">
+        <button class="btn" onclick="exportData()">Export Backup (JSON)</button>
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()">Restore Backup</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Quick Actions</label>
+      <div class="btn-group">
+        <button class="btn ghost sm" onclick="loadDemoData()">Load Sample Data</button>
+        <button class="btn danger sm" onclick="clearAllData()">Clear All Data</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom Navigation -->
+<nav>
+  <button id="nav-reports" class="active" onclick="showPage('reports')">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+    Daily Report
+  </button>
+  <button id="nav-add" onclick="showPage('add')">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Sheet
+  </button>
+  <button id="nav-setting" onclick="showPage('setting')">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    Setting
+  </button>
+</nav>
+
+<div id="toast"></div>
+
+<div id="modalBackdrop">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Confirmation</div>
+    <div class="modal-desc" id="modalDesc">Are you sure you want to proceed?</div>
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="modalCancel">Cancel</button>
+      <button class="btn danger sm" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var DB_KEY = 'DailyRecordApp_v2';
+var sheetsData = [];
+
+function showToast(message, isError = false) {
+  var t = document.getElementById('toast');
+  t.textContent = message;
+  t.className = 'show' + (isError ? ' error' : '');
+  setTimeout(function() { t.className = ''; }, 3000);
+}
+
+function showModal(title, desc, confirmText, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalDesc').textContent = desc;
+  var confirmBtn = document.getElementById('modalConfirm');
+  confirmBtn.textContent = confirmText;
+  
+  var backdrop = document.getElementById('modalBackdrop');
+  backdrop.classList.add('show');
+  
+  var newConfirmBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+  
+  document.getElementById('modalCancel').onclick = function() {
+    backdrop.classList.remove('show');
+  };
+  
+  newConfirmBtn.onclick = function() {
+    backdrop.classList.remove('show');
+    onConfirm();
+  };
+}
+
+function loadStorage() {
+  var saved = localStorage.getItem(DB_KEY);
+  if (saved) {
+    try { sheetsData = JSON.parse(saved); } catch(e) { sheetsData = []; }
+  }
+}
+
+function saveStorage() {
+  localStorage.setItem(DB_KEY, JSON.stringify(sheetsData));
+}
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('p-' + pageId).classList.add('active');
+  document.getElementById('nav-' + pageId).classList.add('active');
+  
+  if (pageId === 'reports') renderReports();
+  if (pageId === 'add') updateStudentDatalist();
+}
+
+function initDate() {
+  var d = new Date();
+  var dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  document.getElementById('hdrDate').textContent = d.toDateString();
+  return dateStr;
+}
+
+function addGridRow(date = '', book = '', lesson = '', pct = '', remark = '') {
+  var tbody = document.getElementById('gridBody');
+  var rowIdx = tbody.children.length + 1;
+  var defaultDate = initDate();
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num">${rowIdx}</td>
+    <td><input type="date" class="g-date" value="${date || defaultDate}"></td>
+    <td><input type="text" class="g-book" value="${book}" placeholder="e.g. Noorani Qaida"></td>
+    <td><input type="text" class="g-lesson" value="${lesson}" placeholder="e.g. Lesson 5"></td>
+    <td><input type="number" class="g-pct" value="${pct}" min="0" max="100" placeholder="0-100"></td>
+    <td><input type="text" class="g-remark" value="${remark}" placeholder="e.g. Excellent"></td>
+    <td style="text-align:center;"><button type="button" onclick="this.closest('tr').remove(); renumRows();" style="border:none;background:none;color:#d32f2f;font-weight:bold;cursor:pointer;">×</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function renumRows() {
+  document.querySelectorAll('#gridBody tr').forEach(function(tr, idx) {
+    tr.querySelector('.row-num').textContent = idx + 1;
+  });
+}
+
+function saveExcelSheet() {
+  var student = document.getElementById('sheetStudent').value.trim();
+  var cls = document.getElementById('sheetClass').value.trim();
+
+  if (!student) { showToast('Please enter student name.', true); return; }
+
+  var rows = [];
+  document.querySelectorAll('#gridBody tr').forEach(function(tr) {
+    var date = tr.querySelector('.g-date').value;
+    var book = tr.querySelector('.g-book').value.trim();
+    var lesson = tr.querySelector('.g-lesson').value.trim();
+    var pct = tr.querySelector('.g-pct').value.trim();
+    var remark = tr.querySelector('.g-remark').value.trim();
+
+    if (book || lesson) {
+      rows.push({
+        date: date || initDate(),
+        book: book || 'General',
+        lesson: lesson || '1',
+        pct: pct !== '' ? Number(pct) : 0,
+        remark: remark
+      });
+    }
+  });
+
+  if (rows.length === 0) {
+    showToast('Please enter at least one book and lesson row.', true);
+    return;
+  }
+
+  var newSheet = {
+    id: 'sheet_' + Date.now(),
+    student: student,
+    cls: cls,
+    items: rows
+  };
+
+  sheetsData.unshift(newSheet);
+  saveStorage();
+  showToast('Daily record saved successfully!');
+  
+  document.getElementById('sheetStudent').value = '';
+  document.getElementById('sheetClass').value = '';
+  document.getElementById('gridBody').innerHTML = '';
+  for (var i = 0; i < 3; i++) addGridRow();
+  
+  showPage('reports');
+}
+
+function updateStudentDatalist() {
+  var list = document.getElementById('studentNames');
+  var names = [];
+  sheetsData.forEach(function(s) { if (!names.includes(s.student)) names.push(s.student); });
+  list.innerHTML = names.map(function(n) { return `<option value="${n}">`; }).join('');
+}
+
+function renderReports() {
+  var container = document.getElementById('reportsList');
+  
+  var totalSheets = sheetsData.length;
+  var uniqueStudents = [];
+  var totalSum = 0;
+  var totalItemsCount = 0;
+
+  sheetsData.forEach(function(s) {
+    if (!uniqueStudents.includes(s.student)) uniqueStudents.push(s.student);
+    s.items.forEach(function(it) {
+      totalSum += it.pct;
+      totalItemsCount++;
+    });
+  });
+
+  document.getElementById('statTotalSheets').textContent = totalSheets;
+  document.getElementById('statTotalStudents').textContent = uniqueStudents.length;
+  document.getElementById('statAvgPct').textContent = totalItemsCount > 0 ? Math.round(totalSum / totalItemsCount) + '%' : '0%';
+
+  if (sheetsData.length === 0) {
+    container.innerHTML = `<div class="card" style="text-align:center; color:var(--mut);">No records saved yet.<br><br><button class="btn" onclick="showPage('add')">+ Add First Record</button></div>`;
+    return;
+  }
+
+  var html = '';
+  sheetsData.forEach(function(sheet) {
+    var totalPct = 0;
+    sheet.items.forEach(function(it) { totalPct += it.pct; });
+    var avgPct = Math.round(totalPct / sheet.items.length);
+
+    html += `
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong style="font-size:1.05rem;">${sheet.student}</strong>
+            ${sheet.cls ? `<span class="tag">${sheet.cls}</span>` : ''}
+          </div>
+          <span style="font-weight:bold; color:var(--r2); font-size:1.1rem;">${avgPct}% Avg</span>
+        </div>
+        
+        <table class="excel-grid" style="font-size:0.85rem; margin-top:10px;">
+          <thead>
+            <tr><th>Date</th><th>Book Name (Column)</th><th>Lesson</th><th>Recited %</th><th>Remarks</th></tr>
+          </thead>
+          <tbody>
+            ${sheet.items.map(function(it) {
+              return `<tr>
+                <td>${it.date}</td>
+                <td><b>${it.book}</b></td>
+                <td>${it.lesson}</td>
+                <td>
+                  ${it.pct}%
+                  <div class="bar-bg"><div class="bar-fill" style="width:${it.pct}%"></div></div>
+                </td>
+                <td>${it.remark || '-'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top:8px; text-align:right;">
+          <button class="btn danger sm" onclick="deleteSheet('${sheet.id}')">Delete Record</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function deleteSheet(id) {
+  showModal('Delete Record', 'Are you sure you want to delete this record?', 'Delete', function() {
+    sheetsData = sheetsData.filter(function(s) { return s.id !== id; });
+    saveStorage();
+    showToast('Record deleted successfully.');
+    renderReports();
+  });
+}
+
+function exportData() {
+  var blob = new Blob([JSON.stringify(sheetsData, null, 2)], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Daily_Record_Backup.json';
+  a.click();
+  showToast('Backup exported successfully.');
+}
+
+function importData(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      var imported = JSON.parse(evt.target.result);
+      if (Array.isArray(imported)) {
+        sheetsData = imported;
+        saveStorage();
+        showToast('Backup restored successfully!');
+        showPage('reports');
+      }
+    } catch(err) { showToast('Invalid backup file format.', true); }
+  };
+  reader.readAsText(file);
+}
+
+function loadDemoData() {
+  sheetsData = [
+    {
+      id: 'demo1',
+      student: 'Ahmad Raza',
+      cls: 'Grade 3',
+      items: [
+        { date: initDate(), book: 'Noorani Qaida', lesson: 'Lesson 5', pct: 100, remark: 'Excellent' },
+        { date: initDate(), book: 'Juz Amma', lesson: 'Surah An-Naba', pct: 75, remark: 'Good' }
+      ]
+    }
+  ];
+  saveStorage();
+  showToast('Sample data loaded.');
+  showPage('reports');
+}
+
+function clearAllData() {
+  showModal('Clear All Data', 'Are you sure you want to delete all saved records? This cannot be undone.', 'Clear All', function() {
+    sheetsData = [];
+    saveStorage();
+    showToast('All data cleared.');
+    renderReports();
+  });
+}
+
+loadStorage();
+initDate();
+for (var i = 0; i < 3; i++) addGridRow();
+renderReports();
+</script>
+</body>
+</html>
